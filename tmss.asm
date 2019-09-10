@@ -97,38 +97,38 @@ writepsg:
 	bra.s	main
 
 setuptable:
-	dc.l	$00008000	; d5
-	dc.l	$00003FFF	; d6
-	dc.l	$00000100	; d7
-	dc.l	$00A00000	; a0
-	dc.l	$00A11100	; a1
-	dc.l	$00A11200	; a2
-	dc.l	$00C00000	; a3
-	dc.l	$00C00004	; a4
-	dc.b	$04		; vdp reg $80
-	dc.b	$14		; vdp reg $81
-	dc.b	$30		; vdp reg $82
-	dc.b	$3C		; vdp reg $83
-	dc.b	$07		; vdp reg $84
-	dc.b	$6C		; vdp reg $85
-	dc.b	$00		; vdp reg $86
-	dc.b	$00		; vdp reg $87
-	dc.b	$00		; vdp reg $88
-	dc.b	$00		; vdp reg $89
-	dc.b	$FF		; vdp reg $8A
-	dc.b	$00		; vdp reg $8B
-	dc.b	$81		; vdp reg $8C
-	dc.b	$37		; vdp reg $8D
-	dc.b	$00		; vdp reg $8E
-	dc.b	$01		; vdp reg $8F
-	dc.b	$01		; vdp reg $90
-	dc.b	$00		; vdp reg $91
-	dc.b	$00		; vdp reg $92
-	dc.b	$FF		; vdp reg $93
-	dc.b	$FF		; vdp reg $94
-	dc.b	$00		; vdp reg $95
-	dc.b	$00		; vdp reg $96
-	dc.b	$80		; vdp reg $97
+	dc.l	$00008000	; d5: vdp register base
+	dc.l	$00003FFF	; d6: ???
+	dc.l	$00000100	; d7: vdp register increment
+	dc.l	$00A00000	; a0: z80 ram start addr
+	dc.l	$00A11100	; a1: z80 bus request
+	dc.l	$00A11200	; a2: z80 reset
+	dc.l	$00C00000	; a3: vdp data
+	dc.l	$00C00004	; a4: vdp control
+	dc.b	$04		; vdp reg $80: hblank off, 512 colour mode
+	dc.b	$14		; vdp reg $81: mode 5, dma enabled
+	dc.b	$30		; vdp reg $82: plane a nametable @ $C000
+	dc.b	$3C		; vdp reg $83: window nametable @ $F000
+	dc.b	$07		; vdp reg $84: plane b nametable @ $E000
+	dc.b	$6C		; vdp reg $85: sprite table @ $D800
+	dc.b	$00		; vdp reg $86: 128k sprite table (unused)
+	dc.b	$00		; vdp reg $87: background colour
+	dc.b	$00		; vdp reg $88: unused
+	dc.b	$00		; vdp reg $89: unused
+	dc.b	$FF		; vdp reg $8A: hblank counter
+	dc.b	$00		; vdp reg $8B: ext int off, full screen vscroll & hscroll
+	dc.b	$81		; vdp reg $8C: 320 pixel wide display, no interlace, no shadow/highlight
+	dc.b	$37		; vdp reg $8D: hscroll table @ $DC00
+	dc.b	$00		; vdp reg $8E: only usable in 128k
+	dc.b	$01		; vdp reg $8F: vdp addr increment
+	dc.b	$01		; vdp reg $90: 64x32 cell plane size
+	dc.b	$00		; vdp reg $91: window hpos
+	dc.b	$00		; vdp reg $92: window vpos
+	dc.b	$FF		; vdp reg $93: dma length low
+	dc.b	$FF		; vdp reg $94: dma length high
+	dc.b	$00		; vdp reg $95: dma source low
+	dc.b	$00		; vdp reg $96: dma source mid
+	dc.b	$80		; vdp reg $97: dma source high + dma type
 	dc.b	$9F		; psg ch1 vol
 	dc.b	$BF		; psg ch2 vol
 	dc.b	$DF		; psg ch3 vol
