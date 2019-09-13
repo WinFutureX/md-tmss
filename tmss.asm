@@ -8,6 +8,16 @@
 ; for asm68k users: change dot-labels (e.g. .loop) to at-labels (e.g. @loop) before you assemble
 ; "asm68k /p tmss.asm, tmss.bin" (no quotes)
 
+; some equates
+z80ram	equ	$00A00000	; z80 ram start
+version	equ	$00A10001	; md console revision
+z80breq	equ	$00A11100	; z80 bus req
+z80rst	equ	$00A11200	; z80 reset
+tmss	equ	$00A14000	; tmss write location
+vdpctrl	equ	$00C00004	; vdp control
+vdpdata	equ	$00C00000	; vdp data
+ramloc	equ	$FFFFC000	; ram copy start addr
+
 ; 68k vector table
 vectors:
 	dc.l	$FFFF00
@@ -44,16 +54,16 @@ startup:
 	lea	setuptable(pc), a5
 	movem.l	(a5)+, d5-a4
 	move.b	-$10FF(a1), d0
-	andi.b	#$F, d0
+	andi.b	#$F, d0		; get console revision
 	beq.s	skiptmss	; a swift decision of fate
 	move.l	#"SEGA", $2F00(a1)
 
 skiptmss:
-	move.w	(a4), d0
+	move.w	(a4), d0	; clear vdp state
 	moveq	#0, d0
 	movea.l	d0, a6
-	move.l	a6, usp
-	moveq	#$17, d1
+	move.l	a6, usp		; clear usp
+	moveq	#$17, d1	; set vdp reg repeat times
 
 ; set vdp registers
 .loop:
@@ -62,13 +72,14 @@ skiptmss:
 	add.w	d7, d5
 	dbf	d1, .loop
 
+; dma time
 clrvram:
 	move.l	#$40000080, (a4)
 	move.w	d0, (a3)
 
 dmawait:
-	move.w	(a4), d4	; get VDP status
-	btst.l	#1, d4		; test DMA busy flag
+	move.w	(a4), d4	; get vdp status
+	btst.l	#1, d4		; test dma busy flag
 	bne.s	dmawait
 
 clrcram:
@@ -100,26 +111,26 @@ setuptable:
 	dc.l	$00008000	; d5: vdp register base
 	dc.l	$00003FFF	; d6: ???
 	dc.l	$00000100	; d7: vdp register increment
-	dc.l	$00A00000	; a0: z80 ram start addr
-	dc.l	$00A11100	; a1: z80 bus request
-	dc.l	$00A11200	; a2: z80 reset
-	dc.l	$00C00000	; a3: vdp data
-	dc.l	$00C00004	; a4: vdp control
+	dc.l	z80ram		; a0
+	dc.l	z80breq		; a1
+	dc.l	z80rst		; a2
+	dc.l	vdpdata		; a3
+	dc.l	vdpctrl		; a4
 	dc.b	$04		; vdp reg $80: hblank off, 512 colour mode
-	dc.b	$14		; vdp reg $81: mode 5, dma enabled
+	dc.b	$14		; vdp reg $81: md mode 5, dma enabled
 	dc.b	$30		; vdp reg $82: plane a nametable @ $C000
 	dc.b	$3C		; vdp reg $83: window nametable @ $F000
 	dc.b	$07		; vdp reg $84: plane b nametable @ $E000
 	dc.b	$6C		; vdp reg $85: sprite table @ $D800
 	dc.b	$00		; vdp reg $86: 128k sprite table (unused)
 	dc.b	$00		; vdp reg $87: background colour
-	dc.b	$00		; vdp reg $88: unused
-	dc.b	$00		; vdp reg $89: unused
+	dc.b	$00		; vdp reg $88: master system hscroll (unused)
+	dc.b	$00		; vdp reg $89: master system vscroll (unused)
 	dc.b	$FF		; vdp reg $8A: hblank counter
 	dc.b	$00		; vdp reg $8B: ext int off, full screen vscroll & hscroll
 	dc.b	$81		; vdp reg $8C: 320 pixel wide display, no interlace, no shadow/highlight
 	dc.b	$37		; vdp reg $8D: hscroll table @ $DC00
-	dc.b	$00		; vdp reg $8E: only usable in 128k
+	dc.b	$00		; vdp reg $8E: 128k plane a/b nametable addr (unused)
 	dc.b	$01		; vdp reg $8F: vdp addr increment
 	dc.b	$01		; vdp reg $90: 64x32 cell plane size
 	dc.b	$00		; vdp reg $91: window hpos
@@ -129,13 +140,13 @@ setuptable:
 	dc.b	$00		; vdp reg $95: dma source low
 	dc.b	$00		; vdp reg $96: dma source mid
 	dc.b	$80		; vdp reg $97: dma source high + dma type
-	dc.b	$9F		; psg ch1 vol
-	dc.b	$BF		; psg ch2 vol
-	dc.b	$DF		; psg ch3 vol
-	dc.b	$FF		; psg ch4 vol
+	dc.b	$9F		; psg ch1 vol: off
+	dc.b	$BF		; psg ch2 vol: off
+	dc.b	$DF		; psg ch3 vol: off
+	dc.b	$FF		; psg ch4 vol: off
 
 main:
-	lea	$FFFFC000.w, a0
+	lea	ramloc.w, a0
 	lea	ramtable(pc), a1
 	movem.l	(a1)+, d4-d7/a2-a6
 	move.w	#$3F, d0	; ram code size
@@ -146,19 +157,19 @@ main:
 	dbf	d0, .loop
 
 jumpram:
-	jsr	$FFFFC000.w
+	jsr	ramloc.w
 	bra.s	*		; shouldn't get here (unless failed)
 
 ramtable:
-	dc.l	$20534547	; d4
-	dc.l	$45940003	; d5
-	dc.l	$000000F7	; d6
-	dc.l	$53454741	; d7
-	dc.l	$00A14000	; a2
-	dc.l	$00A14101	; a3
-	dc.l	$00C00004	; a4
-	dc.l	$00C00000	; a5
-	dc.l	$00A10001	; a6
+	dc.l	$20534547	; d4: " SEG"
+	dc.l	$45940003	; d5: licence vram start addr
+	dc.l	$000000F7	; d6: times to repeat tmss gfx copies
+	dc.l	$53454741	; d7: "SEGA"
+	dc.l	tmss		; a2
+	dc.l	tmss + 1	; a3
+	dc.l	vdpctrl		; a4
+	dc.l	vdpdata		; a5
+	dc.l	version		; a6
 
 ; now we're running from ram
 checkcart:
@@ -221,7 +232,7 @@ cont:
 cramdata:
 	dc.w	$1		; palette size
 	dc.w	$EEE		; palette #0 colour #1 = white
-	dc.w	$EE8		; palette #0 colour #2 = turquoise
+	dc.w	$EE8		; palette #0 colour #2 = turquoise?
 	
 vramdata:
 	; A
