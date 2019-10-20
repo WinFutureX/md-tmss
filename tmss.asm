@@ -285,7 +285,7 @@ tmsspass:
 	jmp	(a0)		; run game
 
 delay:
-	move.w	#$95CE, d1	; run idle loop before booting cart
+	move.w	#$95CE, d1	; run 2.5 sec idle loop before booting cart
 
 innerdelay:
 	dbf	d1, innerdelay
