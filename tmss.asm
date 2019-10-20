@@ -16,6 +16,7 @@ version	equ	$00A10001	; md console revision
 z80breq	equ	$00A11100	; z80 bus req
 z80rst	equ	$00A11200	; z80 reset
 tmss	equ	$00A14000	; tmss write location
+tmssact	equ	$00A14101	; "tmss active" flag
 vdpctrl	equ	$00C00004	; vdp control
 vdpdata	equ	$00C00000	; vdp data
 ramloc	equ	$FFFFC000	; ram copy start addr
@@ -228,7 +229,7 @@ ramtable:
 	dc.l	$000000F7	; d6: times to repeat tmss gfx copies
 	dc.l	$53454741	; d7: "SEGA"
 	dc.l	tmss		; a2
-	dc.l	tmss + 1	; a3
+	dc.l	tmssact		; a3
 	dc.l	vdpctrl		; a4
 	dc.l	vdpdata		; a5
 	dc.l	version		; a6
@@ -264,7 +265,7 @@ loadgfx:
 	dbf	d6, loadgfx
 
 cont:
-	jsr	loadgfx.l
+	jsr	dispgfx.l
 	move.w	#$8144, (a4)
 	move.w	#$3C, d0
 	bsr.s	delay
