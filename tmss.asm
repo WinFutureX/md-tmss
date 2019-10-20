@@ -2,10 +2,12 @@
 ; original code: copyright 1989 - whatever sega
 ; disassembly: copyfuck 2019 kelsey boey
 
-; how to assemble (vasm users):
+; how to assemble
+; -----------------------------------------------------------------------------
+; vasm users:
 ; "vasmm68k_mot -spaces -m68000 -no-opt tmss.asm -Fbin -o tmss.bin" (no quotes)
-
-; for asm68k users: change dot-labels (e.g. .loop) to at-labels (e.g. @loop) before you assemble
+; -----------------------------------------------------------------------------
+; for asm68k users:
 ; "asm68k /p tmss.asm, tmss.bin" (no quotes)
 
 ; some equates
@@ -22,9 +24,68 @@ ramloc	equ	$FFFFC000	; ram copy start addr
 vectors:
 	dc.l	$FFFF00
 	dc.l	startup
-	rept	62
 	dc.l	cpufault
-	endr
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
+	dc.l	cpufault
 
 ; mega drive cart header
 cart:
@@ -32,7 +93,8 @@ cart:
 	dc.b	"(C)SEGA 1990.MAY"
 	dc.b	"GENESIS OS                                      "
 	dc.b	"GENESIS OS                                      "
-	dc.b	"OS 00000000-00", $5B, $74
+	dc.b	"OS 00000000-00"
+	dc.w	$5B74		; checksum
 	dc.l	$20202020
 	dc.l	$20202020
 	dc.l	$20202020
@@ -66,11 +128,11 @@ skiptmss:
 	moveq	#$17, d1	; set vdp reg repeat times
 
 ; set vdp registers
-.loop:
+vdpregloop:
 	move.b	(a5)+, d5
 	move.w	d5, (a4)
 	add.w	d7, d5
-	dbf	d1, .loop
+	dbf	d1, vdpregloop
 
 ; dma time
 clrvram:
@@ -87,24 +149,24 @@ clrcram:
 	move.l	#$C0000000, (a4)
 	moveq	#$1F, d3
 
-.loop:
+clrcramloop:
 	move.l	d0, (a3)
-	dbf	d3, .loop
+	dbf	d3, clrcramloop
 
 clrvsram:
 	move.l	#$40000010, (a4)
 	moveq	#$13, d4
 
-.loop:
+clrvsramloop:
 	move.l	d0, (a3)
-	dbf	d4, .loop
+	dbf	d4, clrvsramloop
 
 writepsg:
 	moveq	#3, d5
 
-.loop:
+writepsgloop:
 	move.b	(a5)+, $11(a3)	; silence psg channels
-	dbf	d5, .loop
+	dbf	d5, writepsgloop
 	bra.s	main
 
 setuptable:
@@ -152,9 +214,9 @@ main:
 	move.w	#$3F, d0	; ram code size
 
 ; load code into ram
-.loop:
+loadramloop:
 	move.w	(a1)+, (a0)+
-	dbf	d0, .loop
+	dbf	d0, loadramloop
 
 jumpram:
 	jsr	ramloc.w
@@ -175,45 +237,45 @@ ramtable:
 checkcart:
 	bset.b	#0, (a3)	; TMSS disengage, cart back on bus
 	cmp.l	$100.w, d7	; header = "SEGA"
-	beq.s	.ok
+	beq.s	cartok
 	cmp.l	$100.w, d4	; header = " SEG"
-	bne.s	.fail
+	bne.s	cartfail
 	cmpi.b	#$41, $104.w	; "A"
-	beq.s	.ok
+	beq.s	cartok
 
-.fail:
+cartfail:
 	bclr.b	#0, (a3)	; TMSS engage, cart off bus
 	move.b	(a6), d0
 	andi.b	#$F, d0		; is MD rev 0?
-	beq.s	.return		; if so, branch
+	beq.s	ramreturn	; if so, branch
 	move.l	#0, (a2)	; disable vdp (if newer rev)
 
-.return:
+ramreturn:
 	rts
 
 ; at this point, "SEGA" is present (in some form) on the cart rom
-.ok:
+cartok:
 	bclr.b	#0, (a3)	; TMSS engage, cart off bus
 	jsr	loadcram.l
 	move.l	#$4C200000, (a4)
 
-.loop
-	move.l	(a1)+, (a5)	; load TMSS graphics
-	dbf	d6, .loop
+loadgfx:
+	move.l	(a1)+, (a5)	; load TMSS font
+	dbf	d6, loadgfx
 
 cont:
-	jsr	loadunseen.l	; load unused licence graphics
+	jsr	loadgfx.l
 	move.w	#$8144, (a4)
 	move.w	#$3C, d0
-	bsr.s	.idle
+	bsr.s	delay
 	move.w	#$8104, (a4)
 	move.b	(a6), d0
 	andi.b	#$F, d0		; is MD rev 0?
-	beq.s	.pass		; shouldn't get here, but whatever
+	beq.s	tmsspass	; shouldn't get here, but whatever
 	move.l	#0, (a2)	; else, disable vdp (games must reenable it, otherwise lockups will occur)
 
 ; security passed, now boot cart
-.pass:
+tmsspass:
 	bset.b	#0, (a3)	; TMSS disengage, cart back on bus
 	moveq	#0, d0
 	movea.l	d0, a0
@@ -221,12 +283,12 @@ cont:
 	movea.l	(a0)+, a0	; update pc from cart
 	jmp	(a0)		; run game
 
-.idle:
+delay:
 	move.w	#$95CE, d1	; run idle loop before booting cart
 
-.loop:
-	dbf	d1, .loop
-	dbf	d0, .idle
+innerdelay:
+	dbf	d1, innerdelay
+	dbf	d0, delay
 	rts
 
 cramdata:
@@ -531,34 +593,36 @@ loadcram:
 	move.w	(a1)+, d0
 	move.l	#$C0020000, (a4)
 
-.loop:
+loadcramloop:
 	move.w	(a1)+, (a5)
-	dbf	d0, .loop
+	dbf	d0, loadcramloop
 	rts
 
-; load unused sega graphic
-loadunseen:
-	move.l	d5, (a4)	; this licence is never shown on screen
+; display TMSS graphics
+dispgfx:
+	move.l	d5, (a4)
 
-.loop:
+dispgfxloop:
 	moveq	#0, d1
 	move.b	(a1)+, d1
-	bmi.s	.null
-	bne.s	.tovram
+	bmi.s	gfxnewline
+	bne.s	gfxspace
 	rts
 
-.tovram:
+gfxspace:
 	move.w	d1, (a5)
-	bra.s	.loop
+	bra.s	dispgfxloop
 
-.null:
+gfxnewline:
 	addi.l	#$1000000, d5
-	bra.s	loadunseen
+	bra.s	dispgfx
 
 ; after padding, rom should be exactly 2K (2048 bytes) in size
-pad	rept	19
+pad:
+	rept	19
 	dc.l	$FFFFFFFF
 	endr
 
 ; end of rom
-endrom	end
+endrom:
+	end
